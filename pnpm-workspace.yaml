@@ -1,0 +1,4 @@
+allowBuilds:
+  '@swc/core': true
+minimumReleaseAgeExclude:
+  - '@codemirror/view@6.43.3'
