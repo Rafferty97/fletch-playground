@@ -12,7 +12,6 @@ import { tags as t } from "@lezer/highlight";
 // Rust, add it here.
 const KEYWORDS = new Set([
   "let",
-  "mut",
   "fn",
   "return",
   "if",
@@ -20,8 +19,6 @@ const KEYWORDS = new Set([
   "while",
   "for",
   "in",
-  "struct",
-  "tuple",
   "true",
   "false",
   "null",

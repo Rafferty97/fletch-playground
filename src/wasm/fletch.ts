@@ -67,7 +67,8 @@ export async function check(source: string) {
 export async function run(source: string, printCb: (msg: string) => void) {
   const fletch = await loadFletch();
   if (fletch && fletch.run) {
-    return fletch.run(source, printCb);
+    fletch.run(source, printCb);
+    return;
   }
   printCb("[wasm not loaded — wire up src/wasm/ to run Fletch]\n");
   return null;
