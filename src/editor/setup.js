@@ -16,7 +16,7 @@ import { lintGutter } from "@codemirror/lint";
 
 import { fletchLanguage } from "../lang/fletch.js";
 import { fletchHighlighting } from "../lang/highlight.js";
-import { fletchLinter } from "./diagnostics";
+import { fletchLinter, fletchTooltip } from "./diagnostics";
 
 // CodeMirror owns its own DOM and state imperatively. We mount it once here and
 // never let anything outside re-render this subtree — it's an imperative island.
@@ -39,6 +39,7 @@ export function createEditor({ parent, doc, check }) {
       fletchHighlighting,
       lintGutter(),
       fletchLinter(check),
+      fletchTooltip(check),
       EditorView.theme(
         {
           "&": { height: "100%", fontSize: "14px" },

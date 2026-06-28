@@ -1,5 +1,6 @@
 import { Diagnostic } from "@codemirror/lint";
 import { linter } from "@codemirror/lint";
+import { hoverTooltip } from "@codemirror/view";
 import { EditorView } from "@codemirror/view";
 
 // ---------------------------------------------------------------------------
@@ -38,7 +39,7 @@ function makeByteToUtf16(source: string) {
   // We build an array `byteAtUnit[i]` = byte offset of UTF-16 unit i.
   const byteAtUnit = new Array(source.length + 1);
   let byte = 0;
-  for (let i = 0; i < source.length; ) {
+  for (let i = 0; i < source.length;) {
     byteAtUnit[i] = byte;
     const cp = source.codePointAt(i)!;
     const units = cp > 0xffff ? 2 : 1; // surrogate pair?
@@ -63,18 +64,25 @@ function makeByteToUtf16(source: string) {
   };
 }
 
+type CheckResult = {
+  diagnostics: FletchDiagnostic[];
+  types: [Span, string][];
+};
+
 type FletchDiagnostic = {
   level: string;
   primary: {
     message: string;
-    span: { lo: number; hi: number };
+    span: Span;
   };
   secondary: {
     message: string;
-    span: { lo: number; hi: number };
+    span: Span;
   }[];
   notes: string[];
 };
+
+type Span = { lo: number; hi: number };
 
 /**
  * Translate one serialized FletchDiagnostic into one or more CM diagnostics.
@@ -119,15 +127,13 @@ function toCmDiagnostics(
  *
  * The `linter` helper debounces and re-runs on document change for us.
  */
-export function fletchLinter(
-  check: (source: string) => Promise<FletchDiagnostic[]>,
-) {
+export function fletchLinter(check: (source: string) => Promise<CheckResult>) {
   return linter(
     async (view: EditorView) => {
       const source = view.state.doc.toString();
-      let diags;
+      let result;
       try {
-        diags = await check(source);
+        result = await check(source);
       } catch (err) {
         // If the checker itself throws (panic in wasm, etc.), surface it
         // rather than silently dropping diagnostics.
@@ -140,13 +146,42 @@ export function fletchLinter(
           },
         ];
       }
-      if (!diags || diags.length === 0) return [];
+
+      if (!result || result.diagnostics.length === 0) return [];
       const conv = makeByteToUtf16(source);
-      return diags.flatMap((fd) => toCmDiagnostics(fd, conv));
+      return result.diagnostics.flatMap((fd) => toCmDiagnostics(fd, conv));
     },
     {
       // Re-lint shortly after typing stops. Tune to taste.
       delay: 200,
     },
   );
+}
+
+export function fletchTooltip(check: (source: string) => Promise<CheckResult>) {
+  return hoverTooltip(async (view, pos, side) => {
+    const source = view.state.doc.toString();
+
+    const word = view.state.wordAt(pos); // respects the language's word chars
+    if (!word) return null;
+
+    const types = await check(source).then((c) => c.types);
+    if (!types) return null;
+
+    const ty = types.find(([span, ty]) => pos >= span.lo && pos < span.hi)?.[1];
+    if (!ty) return null;
+
+    const name = view.state.sliceDoc(word.from, word.to);
+    return {
+      pos: word.from,
+      end: word.to,
+      above: true,
+      create() {
+        const dom = document.createElement("div");
+        dom.className = "cm-type-tooltip";
+        dom.textContent = `${name}: ${ty}`;
+        return { dom };
+      },
+    };
+  });
 }
