@@ -156,6 +156,10 @@ export const fletchLanguage = StreamLanguage.define({
   // re-indent of the current line. Without this, typing `}` won't dedent.
   languageData: {
     indentOnInput: /^\s*[)\]}]$/,
+    commentTokens: {
+      line: "//",
+      block: { open: "/*", close: "*/" }
+    }
   },
 
   tokenTable: {
