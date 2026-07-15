@@ -168,7 +168,7 @@ export function fletchTooltip(check: (source: string) => Promise<CheckResult>) {
     const types = await check(source).then((c) => c.types);
     if (!types) return null;
 
-    const ty = types.find(([span, ty]) => pos >= span.lo && pos < span.hi)?.[1];
+    const ty = types.find(([span, _ty]) => pos >= span.lo && pos < span.hi)?.[1];
     if (!ty) return null;
 
     const name = view.state.sliceDoc(word.from, word.to);
@@ -179,7 +179,7 @@ export function fletchTooltip(check: (source: string) => Promise<CheckResult>) {
       create() {
         const dom = document.createElement("div");
         dom.className = "cm-type-tooltip";
-        dom.textContent = `${name}: ${ty}`;
+        dom.textContent = ty;
         return { dom };
       },
     };
